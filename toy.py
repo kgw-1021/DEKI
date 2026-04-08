@@ -66,7 +66,7 @@ gamma_prior = np.eye(2) * 0.01       # 위치 Prior는 2차원이므로 2x2
 # 3. 그래프 구성
 # -----------------------------------------------------------------------------
 graph = FactorGraph()
-N_particles = 50
+N_particles = 100
 init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 10.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
 
 # Variable Nodes (2D)
@@ -83,7 +83,7 @@ anchor_prior_v4 = PriorFactor("anchor", dims=[2], target_pos=gt_x4, gamma=gamma_
 
 f23 = DistanceFactor("f23", dims=[1], target_dist=d23, gamma=gamma_dist)
 f31 = DistanceFactor("f31", dims=[1], target_dist=d31, gamma=gamma_dist)
-f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist)
+f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist*5)
 # f14 = DistanceFactor("f14", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x4), gamma=gamma_dist)
 # f24 = DistanceFactor("f24", dims=[1], target_dist=np.linalg.norm(gt_x2 - gt_x4), gamma=gamma_dist)
 # f12 = DistanceFactor("f12", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x2), gamma=gamma_dist)
