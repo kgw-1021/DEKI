@@ -11,10 +11,18 @@ class VNode(Node):
                  alpha_cov: float = 1.0,
                  mu_res: float = 1.5,
                  init_z: np.ndarray = None,
+                 init_std: float = 1.0,
+                 n_particles: int = 100,
                  tau_res: float = 1.5) -> None:
         super().__init__(name, dims)
         self.dim = int(np.prod(dims)) if dims else 1
-        self.z_consensus = np.zeros((self.dim, 1)) if init_z is None else init_z.reshape(-1, 1)
+        
+        if init_z is None:
+            self.z_consensus = np.random.randn(self.dim, n_particles) * init_std
+        else:
+            base_z = init_z.reshape(-1, 1)
+            # init_z를 중심으로 init_std만큼 퍼진 앙상블 생성
+            self.z_consensus = base_z + np.random.randn(self.dim, n_particles) * init_std
         
         # ADMM 페널티 조절 파라미터
         self.rho_method = rho_method.lower()
@@ -24,38 +32,44 @@ class VNode(Node):
         self.tau_res = tau_res
 
     def update_consensus_and_dual(self):
-        weight_sum = np.zeros((self.dim, self.dim))
-        weighted_val_sum = np.zeros((self.dim, 1))
+        # 앙상블 파티클 개수 N 가져오기
+        N = self.edges[0].local_ensemble.shape[1] 
         
-        # 1. Z-update: 공분산 및 개별 rho를 모두 고려한 가중 평균
-        # 수식: Z = (\sum \rho_i \Sigma_i^{-1})^{-1} \sum \rho_i \Sigma_i^{-1} (x_i + \lambda_i / \rho_i)
+        # 합의점 Z 역시 (dim, N) 차원의 앙상블 행렬이 됨
+        weight_sum = np.zeros((self.dim, self.dim))
+        weighted_val_sum = np.zeros((self.dim, N)) # (dim, 1)이 아니라 (dim, N)
+        
+        # 1. Ensemble Z-update
         for edge in self.edges:
-            X_local = edge.local_ensemble
-            N = X_local.shape[1]
-            x_mean = np.mean(X_local, axis=1, keepdims=True)
+            # [핵심] 평균(x_mean)을 내지 않고 파티클(X_local) 전체를 그대로 사용!
+            X_local = edge.local_ensemble 
             
-            Xc = X_local - x_mean
+            # (가중치는 단순 rho를 쓰거나, 초기 제안처럼 소프트 가중치 적용 가능)
+            epsilon = 1.0
+            Xc = X_local - np.mean(X_local, axis=1, keepdims=True)
             cov = (Xc @ Xc.T) / (N - 1)
-            precision = np.linalg.inv(cov + 1e-6 * np.eye(self.dim))
-            
+            precision = np.linalg.inv(cov + epsilon * np.eye(self.dim))
             
             W = edge.rho * precision 
-            adjusted_mean = x_mean + (edge.dual_lambda / edge.rho)
+            
+            # 람다 역시 (dim, 1)이 아니라 (dim, N) 차원의 앙상블이어야 함!
+            adjusted_ensemble = X_local + (edge.dual_lambda / edge.rho)
             
             weight_sum += W
-            weighted_val_sum += W @ adjusted_mean
+            weighted_val_sum += W @ adjusted_ensemble
             
+        # Z 앙상블 도출! (100개의 파티클이 각각 합의점을 가짐)
         self.z_consensus = np.linalg.inv(weight_sum) @ weighted_val_sum
         
-        # 2. Dual-update 및 z_target 동기화
+        # 2. Ensemble Dual-update
         for edge in self.edges:
             edge.z_target_prev = edge.z_target.copy()
-            edge.z_target = self.z_consensus.copy()
+            edge.z_target = self.z_consensus.copy() # 타겟도 앙상블!
             
-            x_mean = np.mean(edge.local_ensemble, axis=1, keepdims=True)
-            edge.dual_lambda += edge.rho * (x_mean - self.z_consensus)
+            # 람다 업데이트도 파티클별로 독립적으로 진행
+            edge.dual_lambda += edge.rho * (edge.local_ensemble - self.z_consensus)
             
-        # 3. 각 에지별로 적응형 패널티(rho) 조절
+        # 3. 페널티 조절 (단, 앙상블이 죽지 않으므로 rho_method를 훨씬 부드럽게 세팅 가능)
         self._update_penalties()
 
     def _update_penalties(self):
@@ -155,7 +169,7 @@ class FactorGraph(Graph):
             # Synchronous update
             for fn in fnodes:
                 fn.eki_x_update()
-                fn.noise_scale *= 0.98
+                fn.noise_scale *= 0.95
                 
             for vn in vnodes:
                 vn.update_consensus_and_dual()

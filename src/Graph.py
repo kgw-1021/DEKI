@@ -26,17 +26,26 @@ class Node:
 class Edge:
     def __init__(self, node0: Node, node1: Node, 
                  dim: int = 1, n_particles: int = 100, 
-                 init_std: float = 1.0, rho_init: float = 1.0) -> None:
+                 init_std: float = 1.0, rho_init: float = 1.0,
+                 init_ensemble: np.ndarray = None) -> None:
         self._node0 = node0
         self._node1 = node1
         self._messages = {} 
         
-        self.local_ensemble = np.random.randn(dim, n_particles) * init_std
+        vnode = node0 if type(node0).__name__ == 'VNode' else (node1 if type(node1).__name__ == 'VNode' else None)
         
-        self.dual_lambda = np.zeros((dim, 1))
+        if init_ensemble is not None:
+            self.local_ensemble = init_ensemble.copy()
+        elif vnode is not None and hasattr(vnode, 'z_consensus') and vnode.z_consensus.shape[1] == n_particles:
+            # [핵심] VNode가 이미 앙상블을 가지고 있다면 그 상태를 완벽히 복제하여 시작!
+            self.local_ensemble = vnode.z_consensus.copy()
+        else:
+            self.local_ensemble = np.random.randn(dim, n_particles) * init_std
         
-        self.z_target = np.zeros((dim, 1))
-        self.z_target_prev = np.zeros((dim, 1))
+        self.dual_lambda = np.zeros((dim, n_particles))
+        
+        self.z_target = np.zeros((dim, n_particles))
+        self.z_target_prev = np.zeros((dim, n_particles))
         
         self.rho = rho_init
         
