@@ -66,7 +66,7 @@ gamma_prior = np.eye(2) * 0.01       # 위치 Prior는 2차원이므로 2x2
 # 3. 그래프 구성
 # -----------------------------------------------------------------------------
 graph = FactorGraph()
-N_particles = 100
+N_particles = 50
 init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 10.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
 
 # Variable Nodes (2D)
@@ -81,9 +81,9 @@ anchor_prior_v2 = PriorFactor("anchor", dims=[2], target_pos=gt_x2, gamma=gamma_
 anchor_prior_v4 = PriorFactor("anchor", dims=[2], target_pos=gt_x4, gamma=gamma_prior)
 
 
-f23 = DistanceFactor("f23", dims=[1], target_dist=d23, gamma=gamma_dist)
+f23 = DistanceFactor("f23", dims=[1], target_dist=d23, gamma=gamma_dist*2.0)
 f31 = DistanceFactor("f31", dims=[1], target_dist=d31, gamma=gamma_dist)
-f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist*5)
+f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist*4.0)
 # f14 = DistanceFactor("f14", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x4), gamma=gamma_dist)
 # f24 = DistanceFactor("f24", dims=[1], target_dist=np.linalg.norm(gt_x2 - gt_x4), gamma=gamma_dist)
 # f12 = DistanceFactor("f12", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x2), gamma=gamma_dist)
@@ -164,10 +164,10 @@ for i in range(n_iter):
     ens2 = v2.edges[0].local_ensemble
     ens3 = v3.edges[0].local_ensemble
     ens4 = v4.edges[0].local_ensemble
-    ax.scatter(ens1[0, :], ens1[1, :], c='blue', alpha=0.05, s=10)
-    ax.scatter(ens2[0, :], ens2[1, :], c='green', alpha=0.05, s=10)
-    ax.scatter(ens3[0, :], ens3[1, :], c='magenta', alpha=0.05, s=10)
-    ax.scatter(ens4[0, :], ens4[1, :], c='cyan', alpha=0.05, s=10)
+    ax.scatter(ens1[0, :], ens1[1, :], c='blue', alpha=0.1, s=10)
+    ax.scatter(ens2[0, :], ens2[1, :], c='green', alpha=0.1, s=10)
+    ax.scatter(ens3[0, :], ens3[1, :], c='magenta', alpha=0.1, s=10)
+    ax.scatter(ens4[0, :], ens4[1, :], c='cyan', alpha=0.1, s=10)
 
     # -------------------------------------------------------------------------
     # [수정 2] 보너스: Z 합의점의 앙상블 분포도 시각화 ('x' 마커)
@@ -177,10 +177,10 @@ for i in range(n_iter):
     z_ens2 = v2.z_consensus
     z_ens3 = v3.z_consensus
     z_ens4 = v4.z_consensus 
-    ax.scatter(z_ens1[0, :], z_ens1[1, :], c='darkblue', alpha=0.2, s=15, marker='x')
-    ax.scatter(z_ens2[0, :], z_ens2[1, :], c='darkgreen', alpha=0.2, s=15, marker='x')
-    ax.scatter(z_ens3[0, :], z_ens3[1, :], c='purple', alpha=0.2, s=15, marker='x')
-    ax.scatter(z_ens4[0, :], z_ens4[1, :], c='darkcyan', alpha=0.2, s=15, marker='x')
+    ax.scatter(z_ens1[0, :], z_ens1[1, :], c='darkblue', alpha=0.5, s=15, marker='x')
+    ax.scatter(z_ens2[0, :], z_ens2[1, :], c='darkgreen', alpha=0.5, s=15, marker='x')
+    ax.scatter(z_ens3[0, :], z_ens3[1, :], c='purple', alpha=0.5, s=15, marker='x')
+    ax.scatter(z_ens4[0, :], z_ens4[1, :], c='darkcyan', alpha=0.5, s=15, marker='x')
     
     # 3. 합의점(Z)의 이동 경로(Trajectory) 플롯
     h1 = np.array(hist_v1)
@@ -209,6 +209,9 @@ for i in range(n_iter):
 
 plt.ioff()
 print("Optimization Complete!")
+print(f"Final Estimated Positions:\n x1: {m1}\n x2: {m2}\n x3: {m3}\n x4: {m4}")
+print(f"Final Errors:\n x1: {err1_history[-1]}\n x2: {err2_history[-1]}\n x3: {err3_history[-1]}\n x4: {err4_history[-1]}")
+print(f"Final Total Error: {total_errors[-1]:.4f}")
 
 plt.figure(figsize=(8, 5))
 plt.plot()

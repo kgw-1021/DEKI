@@ -36,30 +36,22 @@ class VNode(Node):
         N = self.edges[0].local_ensemble.shape[1] 
         
         # 합의점 Z 역시 (dim, N) 차원의 앙상블 행렬이 됨
-        weight_sum = np.zeros((self.dim, self.dim))
+        rho_sum = 0.0
         weighted_val_sum = np.zeros((self.dim, N)) # (dim, 1)이 아니라 (dim, N)
         
         # 1. Ensemble Z-update
         for edge in self.edges:
             # [핵심] 평균(x_mean)을 내지 않고 파티클(X_local) 전체를 그대로 사용!
             X_local = edge.local_ensemble 
+            rho = edge.rho
             
-            # (가중치는 단순 rho를 쓰거나, 초기 제안처럼 소프트 가중치 적용 가능)
-            epsilon = 1.0
-            Xc = X_local - np.mean(X_local, axis=1, keepdims=True)
-            cov = (Xc @ Xc.T) / (N - 1)
-            precision = np.linalg.inv(cov + epsilon * np.eye(self.dim))
+            adjusted_ensemble = X_local + (edge.dual_lambda / rho)
             
-            W = edge.rho * precision 
-            
-            # 람다 역시 (dim, 1)이 아니라 (dim, N) 차원의 앙상블이어야 함!
-            adjusted_ensemble = X_local + (edge.dual_lambda / edge.rho)
-            
-            weight_sum += W
-            weighted_val_sum += W @ adjusted_ensemble
+            rho_sum += rho
+            weighted_val_sum += rho * adjusted_ensemble
             
         # Z 앙상블 도출! (100개의 파티클이 각각 합의점을 가짐)
-        self.z_consensus = np.linalg.inv(weight_sum) @ weighted_val_sum
+        self.z_consensus = weighted_val_sum / rho_sum
         
         # 2. Ensemble Dual-update
         for edge in self.edges:
@@ -145,13 +137,39 @@ class FNode(Node):
         noise = np.random.multivariate_normal(zero_mean, Gamma_total, N).T
         X_new_total = X_total + K @ (-E_total + noise)
 
-        # expected_variance = np.trace(C_yy) + np.trace(Gamma_total)
-        # actual_error_sq = np.sum(E_mean ** 2)
-        # eta = actual_error_sq / (expected_variance + 1e-8)
+        expected_variance = np.trace(C_yy) + np.trace(Gamma_total)
+        actual_error_sq = np.sum(E_mean ** 2)
+        eta = actual_error_sq / (expected_variance + 1e-8)
 
         # print(f"{self.name} | E_mean norm: {np.linalg.norm(E_mean):.4f}, Expected Var: {expected_variance:.4f}, Actual Error^2: {actual_error_sq:.4f}, Eta: {eta:.4f}, Rho: {[edge.rho for edge in self.edges]}")
         
-        X_new_total += self.noise_scale * np.random.randn(*X_new_total.shape)
+        # [핵심] Eta를 이용한 동적 노이즈 스케일링
+        # 초기 노이즈(self.initial_noise_scale)에 eta의 제곱근을 곱해줍니다.
+        # - eta > 1 이면 노이즈 증폭 (탐색 강화)
+        # - eta < 1 이면 노이즈 축소 (수렴 강화)
+        dynamic_noise_scale = self.noise_scale * np.sqrt(eta)
+        
+        # 안전장치 1: 노이즈가 무한히 커지는 것을 방지 (예: 초기 노이즈의 최대 3배까지만 허용)
+        dynamic_noise_scale = min(dynamic_noise_scale, self.noise_scale * 3.0)
+        
+        # 안전장치 2: 시간이 지날수록 전반적인 탐색 반경을 서서히 좁히기 (선택 사항)
+        # decay_factor = 0.99 ** self.current_iteration 
+        # dynamic_noise_scale *= decay_factor
+        
+        # 안전장치 3: 완벽한 수렴을 위해 노이즈가 특정 임계치 이하면 완전히 꺼버림
+        if dynamic_noise_scale < 1e-4:
+            dynamic_noise_scale = 0.0
+
+        # 로그 출력 (디버깅용으로 켜두시면 수렴 과정을 관찰하기 매우 좋습니다)
+        # print(f"[{self.name}] Eta: {eta:.4f} -> Noise Scale: {dynamic_noise_scale:.4f}")
+
+        # 노이즈 주입!
+        if dynamic_noise_scale > 0:
+            X_new_total += dynamic_noise_scale * np.random.randn(*X_new_total.shape)
+
+
+        # X_new_total += self.noise_scale * np.random.randn(*X_new_total.shape)
+
         idx = 0
         for edge in self.edges:
             dim = edge.local_ensemble.shape[0]
