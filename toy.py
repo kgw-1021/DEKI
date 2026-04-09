@@ -45,7 +45,7 @@ class PriorFactor(FNode):
 # -----------------------------------------------------------------------------
 # 2. Ground Truth 및 설정
 # -----------------------------------------------------------------------------
-np.random.seed(10)
+np.random.seed(1)
 
 # 정답 (정삼각형 형태의 3개 노드 위치)
 gt_x1 = np.array([0.0, 0.0])
@@ -59,15 +59,16 @@ d31 = np.linalg.norm(gt_x3 - gt_x1)
 d34 = np.linalg.norm(gt_x3 - gt_x4)
 
 # 측정 노이즈 공분산
-gamma_dist = np.array([[1.0]])       # 거리 제약은 1차원이므로 1x1
+gamma_dist = np.array([[0.1]])       # 거리 제약은 1차원이므로 1x1
 gamma_prior = np.eye(2) * 0.01       # 위치 Prior는 2차원이므로 2x2
 
 # -----------------------------------------------------------------------------
 # 3. 그래프 구성
 # -----------------------------------------------------------------------------
 graph = FactorGraph()
-N_particles = 50
-init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 10.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
+N_particles = 1000
+init_pos = np.array([[0, 0], [0, 0], [0, 0], [0, 0]]) + np.random.normal(0, 20.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
+# init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 10.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
 
 # Variable Nodes (2D)
 v1 = VNode("x1", dims=[2], rho_method='covariance', init_z=init_pos[0].reshape(-1, 1), n_particles=N_particles, alpha_cov=10.0, rho_max=100.0)
@@ -81,9 +82,9 @@ anchor_prior_v2 = PriorFactor("anchor", dims=[2], target_pos=gt_x2, gamma=gamma_
 anchor_prior_v4 = PriorFactor("anchor", dims=[2], target_pos=gt_x4, gamma=gamma_prior)
 
 
-f23 = DistanceFactor("f23", dims=[1], target_dist=d23, gamma=gamma_dist*2.0)
+f23 = DistanceFactor("f23", dims=[1], target_dist=d23, gamma=gamma_dist)
 f31 = DistanceFactor("f31", dims=[1], target_dist=d31, gamma=gamma_dist)
-f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist*4.0)
+f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist)
 # f14 = DistanceFactor("f14", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x4), gamma=gamma_dist)
 # f24 = DistanceFactor("f24", dims=[1], target_dist=np.linalg.norm(gt_x2 - gt_x4), gamma=gamma_dist)
 # f12 = DistanceFactor("f12", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x2), gamma=gamma_dist)
@@ -144,7 +145,7 @@ for i in range(n_iter):
     err3 = np.linalg.norm(m3 - gt_x3)
     err4 = np.linalg.norm(m4 - gt_x4)
 
-    total_errors.append(err1 + err2 + err3)
+    total_errors.append(err1 + err2 + err3 + err4)
     err1_history.append(err1)
     err2_history.append(err2)
     err3_history.append(err3)

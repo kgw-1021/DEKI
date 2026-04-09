@@ -56,7 +56,7 @@ class VNode(Node):
         # 2. Ensemble Dual-update
         for edge in self.edges:
             edge.z_target_prev = edge.z_target.copy()
-            edge.z_target = self.z_consensus.copy() # 타겟도 앙상블!
+            edge.z_target = self.z_consensus.copy() 
             
             # 람다 업데이트도 파티클별로 독립적으로 진행
             edge.dual_lambda += edge.rho * (edge.local_ensemble - self.z_consensus)
@@ -150,7 +150,7 @@ class FNode(Node):
         dynamic_noise_scale = self.noise_scale * np.sqrt(eta)
         
         # 안전장치 1: 노이즈가 무한히 커지는 것을 방지 (예: 초기 노이즈의 최대 3배까지만 허용)
-        dynamic_noise_scale = min(dynamic_noise_scale, self.noise_scale * 3.0)
+        dynamic_noise_scale = min(dynamic_noise_scale, self.noise_scale * 1.0)
         
         # 안전장치 2: 시간이 지날수록 전반적인 탐색 반경을 서서히 좁히기 (선택 사항)
         # decay_factor = 0.99 ** self.current_iteration 

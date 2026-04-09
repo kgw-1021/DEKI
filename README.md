@@ -1,7 +1,7 @@
 
-# 🌌 Pure Ensemble Distributed Optimization (PEDO)
+# 🌌 Distributed Ensemble Consensus Optimization (DECO)
 
-**PEDO (Pure Ensemble Distributed Optimization)** is a derivative-free, and fully Bayesian framework for solving complex nonlinear distributed optimization problems using Factor Graphs. 
+**DECO (Distributed Ensemble Consensus Optimization)** is a derivative-free, and fully Bayesian framework for solving complex nonlinear distributed optimization problems using Factor Graphs. 
 
 By combining the structural elegance of **ADMM (Alternating Direction Method of Multipliers)** with the derivative-free power of **EKI (Ensemble Kalman Inversion)**, this framework treats optimization not as finding a single point, but as evolving a fluid distribution of beliefs.
 
@@ -9,7 +9,7 @@ By combining the structural elegance of **ADMM (Alternating Direction Method of 
 
 ## ✨ Key Innovations
 
-### 1. Pure Ensemble Consensus (Bayesian ADMM)
+### 1. Ensemble Consensus (Bayesian ADMM)
 Unlike traditional ADMM or standard Kalman filters that compress information into Gaussian approximations (mean and covariance), our Variable Nodes (`VNode`) perform **Particle-to-Particle (1:1) matching**.
 - Preserves Non-Gaussian and Multi-modal distributions natively.
 - Full Uncertainty Quantification: The final $Z$ ensemble represents the true posterior distribution, not just a MAP estimate.
