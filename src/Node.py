@@ -21,7 +21,6 @@ class VNode(Node):
             self.z_consensus = np.random.randn(self.dim, n_particles) * init_std
         else:
             base_z = init_z.reshape(-1, 1)
-            # init_z를 중심으로 init_std만큼 퍼진 앙상블 생성
             self.z_consensus = base_z + np.random.randn(self.dim, n_particles) * init_std
         
         # ADMM 페널티 조절 파라미터
@@ -152,12 +151,9 @@ class FNode(Node):
         # 안전장치 1: 노이즈가 무한히 커지는 것을 방지 (예: 초기 노이즈의 최대 3배까지만 허용)
         dynamic_noise_scale = min(dynamic_noise_scale, self.noise_scale * 1.0)
         
-        # 안전장치 2: 시간이 지날수록 전반적인 탐색 반경을 서서히 좁히기 (선택 사항)
-        # decay_factor = 0.99 ** self.current_iteration 
-        # dynamic_noise_scale *= decay_factor
         
         # 안전장치 3: 완벽한 수렴을 위해 노이즈가 특정 임계치 이하면 완전히 꺼버림
-        if dynamic_noise_scale < 1e-4:
+        if dynamic_noise_scale < 1e-1:
             dynamic_noise_scale = 0.0
 
         # 로그 출력 (디버깅용으로 켜두시면 수렴 과정을 관찰하기 매우 좋습니다)

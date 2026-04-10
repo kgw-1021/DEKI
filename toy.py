@@ -60,15 +60,15 @@ d34 = np.linalg.norm(gt_x3 - gt_x4)
 
 # 측정 노이즈 공분산
 gamma_dist = np.array([[0.1]])       # 거리 제약은 1차원이므로 1x1
-gamma_prior = np.eye(2) * 0.01       # 위치 Prior는 2차원이므로 2x2
+gamma_prior = np.eye(2) * 0.001       # 위치 Prior는 2차원이므로 2x2
 
 # -----------------------------------------------------------------------------
 # 3. 그래프 구성
 # -----------------------------------------------------------------------------
 graph = FactorGraph()
-N_particles = 1000
-init_pos = np.array([[0, 0], [0, 0], [0, 0], [0, 0]]) + np.random.normal(0, 20.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
-# init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 10.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
+N_particles = 100
+# init_pos = np.array([[0, 0], [0, 0], [0, 0], [0, 0]]) + np.random.normal(0, 1.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
+init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 5.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
 
 # Variable Nodes (2D)
 v1 = VNode("x1", dims=[2], rho_method='covariance', init_z=init_pos[0].reshape(-1, 1), n_particles=N_particles, alpha_cov=10.0, rho_max=100.0)
