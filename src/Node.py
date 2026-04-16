@@ -6,7 +6,7 @@ from src.Graph import Node, Edge, Graph
 
 class VNode(Node):
     def __init__(self, name: str, dims: list, 
-                 rho_method: str = 'residual',
+                 rho_method: str = 'covariance',
                  rho_max: float = 100.0,
                  alpha_cov: float = 1.0,
                  mu_res: float = 1.5,
@@ -79,8 +79,11 @@ class VNode(Node):
                 
             elif self.rho_method == 'residual':
                 # 기존 기법: Primal(r) vs Dual(s) 잔차 밸런싱
-                r = float(np.linalg.norm(x_mean - edge.z_target))
-                s = float(np.linalg.norm(edge.rho * (edge.z_target - edge.z_target_prev)))
+                z_mean = np.mean(edge.z_target, axis=1, keepdims=True)
+                z_prev_mean = np.mean(edge.z_target_prev, axis=1, keepdims=True)
+
+                r = float(np.linalg.norm(x_mean - z_mean))
+                s = float(np.linalg.norm(edge.rho * (edge.z_target - z_prev_mean)))
                 
                 if r > self.mu_res * s:
                     edge.rho = min(edge.rho * self.tau_res, self.rho_max)
@@ -142,22 +145,14 @@ class FNode(Node):
 
         # print(f"{self.name} | E_mean norm: {np.linalg.norm(E_mean):.4f}, Expected Var: {expected_variance:.4f}, Actual Error^2: {actual_error_sq:.4f}, Eta: {eta:.4f}, Rho: {[edge.rho for edge in self.edges]}")
         
-        # [핵심] Eta를 이용한 동적 노이즈 스케일링
-        # 초기 노이즈(self.initial_noise_scale)에 eta의 제곱근을 곱해줍니다.
-        # - eta > 1 이면 노이즈 증폭 (탐색 강화)
-        # - eta < 1 이면 노이즈 축소 (수렴 강화)
         dynamic_noise_scale = self.noise_scale * np.sqrt(eta)
         
-        # 안전장치 1: 노이즈가 무한히 커지는 것을 방지 (예: 초기 노이즈의 최대 3배까지만 허용)
-        dynamic_noise_scale = min(dynamic_noise_scale, self.noise_scale * 1.0)
+        dynamic_noise_scale = min(dynamic_noise_scale, self.noise_scale * 10.0)
         
         
-        # 안전장치 3: 완벽한 수렴을 위해 노이즈가 특정 임계치 이하면 완전히 꺼버림
-        if dynamic_noise_scale < 1e-1:
+        if dynamic_noise_scale < 1e-4:
             dynamic_noise_scale = 0.0
 
-        # 로그 출력 (디버깅용으로 켜두시면 수렴 과정을 관찰하기 매우 좋습니다)
-        # print(f"[{self.name}] Eta: {eta:.4f} -> Noise Scale: {dynamic_noise_scale:.4f}")
 
         # 노이즈 주입!
         if dynamic_noise_scale > 0:
@@ -183,7 +178,7 @@ class FactorGraph(Graph):
             # Synchronous update
             for fn in fnodes:
                 fn.eki_x_update()
-                fn.noise_scale *= 0.95
+                fn.noise_scale *= 0.99
                 
             for vn in vnodes:
                 vn.update_consensus_and_dual()

@@ -45,22 +45,27 @@ class PriorFactor(FNode):
 # -----------------------------------------------------------------------------
 # 2. Ground Truth 및 설정
 # -----------------------------------------------------------------------------
-np.random.seed(1)
+np.random.seed(77)
 
 # 정답 (정삼각형 형태의 3개 노드 위치)
-gt_x1 = np.array([0.0, 0.0])
-gt_x2 = np.array([10.0, 0.0])
+gt_x1 = np.array([0.0, 5.0])
+gt_x2 = np.array([5.0, 0.0])
 gt_x3 = np.array([5.0, 8.66025]) 
-gt_x4 = np.array([5.0, 8.66025* np.sqrt(3)]) 
+gt_x4 = np.array([12.0, 10.0])
+gt_x5 = np.array([10.0, 15.0]) 
+gt_x6 = np.array([17.0, 10.0]) 
+
 
 # 측정된 거리
 d23 = np.linalg.norm(gt_x2 - gt_x3)
 d31 = np.linalg.norm(gt_x3 - gt_x1)
 d34 = np.linalg.norm(gt_x3 - gt_x4)
+d45 = np.linalg.norm(gt_x4 - gt_x5)
+d46 = np.linalg.norm(gt_x4 - gt_x6)
 
 # 측정 노이즈 공분산
 gamma_dist = np.array([[0.1]])       # 거리 제약은 1차원이므로 1x1
-gamma_prior = np.eye(2) * 0.001       # 위치 Prior는 2차원이므로 2x2
+gamma_prior = np.eye(2) * 0.001 # 위치 Prior는 2차원이므로 2x2
 
 # -----------------------------------------------------------------------------
 # 3. 그래프 구성
@@ -68,23 +73,29 @@ gamma_prior = np.eye(2) * 0.001       # 위치 Prior는 2차원이므로 2x2
 graph = FactorGraph()
 N_particles = 100
 # init_pos = np.array([[0, 0], [0, 0], [0, 0], [0, 0]]) + np.random.normal(0, 1.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
-init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4]) + np.random.normal(0, 5.0, (4, 2))  # 초기 추정값 (약간의 노이즈 포함)
+init_pos = np.array([gt_x1, gt_x2, gt_x3, gt_x4, gt_x5, gt_x6]) + np.random.normal(0, 10.0, (6, 2))  # 초기 추정값 (약간의 노이즈 포함)
 
 # Variable Nodes (2D)
-v1 = VNode("x1", dims=[2], rho_method='covariance', init_z=init_pos[0].reshape(-1, 1), n_particles=N_particles, alpha_cov=10.0, rho_max=100.0)
-v2 = VNode("x2", dims=[2], rho_method='covariance', init_z=init_pos[1].reshape(-1, 1), n_particles=N_particles, alpha_cov=10.0, rho_max=100.0)
-v3 = VNode("x3", dims=[2], rho_method='covariance', init_z=init_pos[2].reshape(-1, 1), n_particles=N_particles, alpha_cov=10.0, rho_max=100.0)
-v4 = VNode("x4", dims=[2], rho_method='covariance', init_z=init_pos[3].reshape(-1, 1), n_particles=N_particles, alpha_cov=10.0, rho_max=100.0)
+v1 = VNode("x1", dims=[2], rho_method='covariance', init_z=init_pos[0].reshape(-1, 1), init_std=1.0, n_particles=N_particles, alpha_cov=100.0, rho_max=10000.0)
+v2 = VNode("x2", dims=[2], rho_method='covariance', init_z=init_pos[1].reshape(-1, 1), init_std=1.0, n_particles=N_particles, alpha_cov=100.0, rho_max=10000.0)
+v3 = VNode("x3", dims=[2], rho_method='covariance', init_z=init_pos[2].reshape(-1, 1), init_std=1.0, n_particles=N_particles, alpha_cov=100.0, rho_max=10000.0)
+v4 = VNode("x4", dims=[2], rho_method='covariance', init_z=init_pos[3].reshape(-1, 1), init_std=1.0, n_particles=N_particles, alpha_cov=100.0, rho_max=10000.0)
+v5 = VNode("x5", dims=[2], rho_method='covariance', init_z=init_pos[4].reshape(-1, 1), init_std=1.0, n_particles=N_particles, alpha_cov=100.0, rho_max=10000.0)
+v6 = VNode("x6", dims=[2], rho_method='covariance', init_z=init_pos[5].reshape(-1, 1), init_std=1.0, n_particles=N_particles, alpha_cov=100.0, rho_max=10000.0)
 
 
 anchor_prior_v1 = PriorFactor("anchor", dims=[2], target_pos=gt_x1, gamma=gamma_prior)
 anchor_prior_v2 = PriorFactor("anchor", dims=[2], target_pos=gt_x2, gamma=gamma_prior)
-anchor_prior_v4 = PriorFactor("anchor", dims=[2], target_pos=gt_x4, gamma=gamma_prior)
+anchor_prior_v5 = PriorFactor("anchor", dims=[2], target_pos=gt_x5, gamma=gamma_prior)
+anchor_prior_v6 = PriorFactor("anchor", dims=[2], target_pos=gt_x6, gamma=gamma_prior)
 
 
 f23 = DistanceFactor("f23", dims=[1], target_dist=d23, gamma=gamma_dist)
 f31 = DistanceFactor("f31", dims=[1], target_dist=d31, gamma=gamma_dist)
 f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist)
+f45 = DistanceFactor("f45", dims=[1], target_dist=d45, gamma=gamma_dist)
+f46 = DistanceFactor("f46", dims=[1], target_dist=d46, gamma=gamma_dist)
+
 # f14 = DistanceFactor("f14", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x4), gamma=gamma_dist)
 # f24 = DistanceFactor("f24", dims=[1], target_dist=np.linalg.norm(gt_x2 - gt_x4), gamma=gamma_dist)
 # f12 = DistanceFactor("f12", dims=[1], target_dist=np.linalg.norm(gt_x1 - gt_x2), gamma=gamma_dist)
@@ -93,7 +104,8 @@ f43 = DistanceFactor("f43", dims=[1], target_dist=d34, gamma=gamma_dist)
 
 graph.connect(v1, anchor_prior_v1, dim=2, n_particles=N_particles)
 graph.connect(v2, anchor_prior_v2, dim=2, n_particles=N_particles)
-graph.connect(v4, anchor_prior_v4, dim=2, n_particles=N_particles)
+graph.connect(v5, anchor_prior_v5, dim=2, n_particles=N_particles)
+graph.connect(v6, anchor_prior_v6, dim=2, n_particles=N_particles)
 
 graph.connect(v2, f23, dim=2, n_particles=N_particles)
 graph.connect(v3, f23, dim=2, n_particles=N_particles)
@@ -103,6 +115,12 @@ graph.connect(v1, f31, dim=2, n_particles=N_particles)
 
 graph.connect(v4, f43, dim=2, n_particles=N_particles)
 graph.connect(v3, f43, dim=2, n_particles=N_particles)
+
+graph.connect(v4, f45, dim=2, n_particles=N_particles)
+graph.connect(v5, f45, dim=2, n_particles=N_particles)
+
+graph.connect(v4, f46, dim=2, n_particles=N_particles)
+graph.connect(v6, f46, dim=2, n_particles=N_particles)
 
 # graph.connect(v1, f14, dim=2, n_particles=N_particles)
 # graph.connect(v4, f14, dim=2, n_particles=N_particles)
@@ -120,9 +138,9 @@ n_iter = 100
 plt.ion()
 fig, ax = plt.subplots(figsize=(10, 8))
 
-hist_v1, hist_v2, hist_v3, hist_v4 = [], [], [], []
+hist_v1, hist_v2, hist_v3, hist_v4, hist_v5, hist_v6 = [], [], [], [], [], []
 total_errors = []
-err1_history, err2_history, err3_history, err4_history = [], [], [], []   
+err1_history, err2_history, err3_history, err4_history, err5_history, err6_history = [], [], [], [], [], []   
 
 for i in range(n_iter):
     # 1 스텝 업데이트 (EKI x-update -> Z-update & Dual-update)
@@ -133,23 +151,31 @@ for i in range(n_iter):
     m2 = np.mean(v2.z_consensus, axis=1)
     m3 = np.mean(v3.z_consensus, axis=1)
     m4 = np.mean(v4.z_consensus, axis=1)
+    m5 = np.mean(v5.z_consensus, axis=1)
+    m6 = np.mean(v6.z_consensus, axis=1)
     
     hist_v1.append(m1)
     hist_v2.append(m2)
     hist_v3.append(m3)
     hist_v4.append(m4)
+    hist_v5.append(m5)
+    hist_v6.append(m6)
     
     # 에러 계산 (대표 좌표와 Ground Truth 사이의 거리)
     err1 = np.linalg.norm(m1 - gt_x1)
     err2 = np.linalg.norm(m2 - gt_x2)
     err3 = np.linalg.norm(m3 - gt_x3)
     err4 = np.linalg.norm(m4 - gt_x4)
+    err5 = np.linalg.norm(m5 - gt_x5)
+    err6 = np.linalg.norm(m6 - gt_x6)
 
-    total_errors.append(err1 + err2 + err3 + err4)
+    total_errors.append(err1 + err2 + err3 + err4 + err5 + err6)
     err1_history.append(err1)
     err2_history.append(err2)
     err3_history.append(err3)
     err4_history.append(err4)
+    err5_history.append(err5)
+    err6_history.append(err6)
 
     # ---------------- 플로팅 업데이트 ----------------
     ax.clear()
@@ -159,16 +185,22 @@ for i in range(n_iter):
     ax.scatter(*gt_x2, c='red', marker='*', s=300, zorder=5)
     ax.scatter(*gt_x3, c='red', marker='*', s=300, zorder=5)
     ax.scatter(*gt_x4, c='red', marker='*', s=300, zorder=5)
+    ax.scatter(*gt_x5, c='red', marker='*', s=300, zorder=5)
+    ax.scatter(*gt_x6, c='red', marker='*', s=300, zorder=5)
     
     # 2. 로컬 앙상블(파티클) 스캐터 플롯 
     ens1 = v1.edges[0].local_ensemble
     ens2 = v2.edges[0].local_ensemble
     ens3 = v3.edges[0].local_ensemble
     ens4 = v4.edges[0].local_ensemble
+    ens5 = v5.edges[0].local_ensemble
+    ens6 = v6.edges[0].local_ensemble   
     ax.scatter(ens1[0, :], ens1[1, :], c='blue', alpha=0.1, s=10)
     ax.scatter(ens2[0, :], ens2[1, :], c='green', alpha=0.1, s=10)
     ax.scatter(ens3[0, :], ens3[1, :], c='magenta', alpha=0.1, s=10)
     ax.scatter(ens4[0, :], ens4[1, :], c='cyan', alpha=0.1, s=10)
+    ax.scatter(ens5[0, :], ens5[1, :], c='orange', alpha=0.1, s=10)
+    ax.scatter(ens6[0, :], ens6[1, :], c='purple', alpha=0.1, s=10)
 
     # -------------------------------------------------------------------------
     # [수정 2] 보너스: Z 합의점의 앙상블 분포도 시각화 ('x' 마커)
@@ -177,27 +209,37 @@ for i in range(n_iter):
     z_ens1 = v1.z_consensus
     z_ens2 = v2.z_consensus
     z_ens3 = v3.z_consensus
-    z_ens4 = v4.z_consensus 
+    z_ens4 = v4.z_consensus
+    z_ens5 = v5.z_consensus
+    z_ens6 = v6.z_consensus
     ax.scatter(z_ens1[0, :], z_ens1[1, :], c='darkblue', alpha=0.5, s=15, marker='x')
     ax.scatter(z_ens2[0, :], z_ens2[1, :], c='darkgreen', alpha=0.5, s=15, marker='x')
     ax.scatter(z_ens3[0, :], z_ens3[1, :], c='purple', alpha=0.5, s=15, marker='x')
     ax.scatter(z_ens4[0, :], z_ens4[1, :], c='darkcyan', alpha=0.5, s=15, marker='x')
+    ax.scatter(z_ens5[0, :], z_ens5[1, :], c='darkorange', alpha=0.5, s=15, marker='x')
+    ax.scatter(z_ens6[0, :], z_ens6[1, :], c='darkmagenta', alpha=0.5, s=15, marker='x')
     
     # 3. 합의점(Z)의 이동 경로(Trajectory) 플롯
     h1 = np.array(hist_v1)
     h2 = np.array(hist_v2)
     h3 = np.array(hist_v3)
     h4 = np.array(hist_v4)
+    h5 = np.array(hist_v5)
+    h6 = np.array(hist_v6)
     ax.plot(h1[:, 0], h1[:, 1], 'b--', linewidth=2, label='x1 Path')
     ax.plot(h2[:, 0], h2[:, 1], 'g--', linewidth=2, label='x2 Path')
     ax.plot(h3[:, 0], h3[:, 1], 'm--', linewidth=2, label='x3 Path')
     ax.plot(h4[:, 0], h4[:, 1], 'c--', linewidth=2, label='x4 Path')
+    ax.plot(h5[:, 0], h5[:, 1], 'orange', linestyle='--', linewidth=2, label='x5 Path')
+    ax.plot(h6[:, 0], h6[:, 1], 'purple', linestyle='--', linewidth=2, label='x6 Path')
     
     # 4. 현재 대표 합의점 플롯
     ax.scatter(*m1, c='blue', s=150, edgecolors='black', zorder=4)
     ax.scatter(*m2, c='green', s=150, edgecolors='black', zorder=4)
     ax.scatter(*m3, c='magenta', s=150, edgecolors='black', zorder=4)
     ax.scatter(*m4, c='cyan', s=150, edgecolors='black', zorder=4)
+    ax.scatter(*m5, c='orange', s=150, edgecolors='black', zorder=4)
+    ax.scatter(*m6, c='purple', s=150, edgecolors='black', zorder=4)
 
     # UI 정리
     ax.set_title(f"Iteration: {i+1}/{n_iter}\nTotal Error: {total_errors[-1]:.4f}", fontsize=14)
@@ -210,8 +252,8 @@ for i in range(n_iter):
 
 plt.ioff()
 print("Optimization Complete!")
-print(f"Final Estimated Positions:\n x1: {m1}\n x2: {m2}\n x3: {m3}\n x4: {m4}")
-print(f"Final Errors:\n x1: {err1_history[-1]}\n x2: {err2_history[-1]}\n x3: {err3_history[-1]}\n x4: {err4_history[-1]}")
+print(f"Final Estimated Positions:\n x1: {m1}\n x2: {m2}\n x3: {m3}\n x4: {m4}\n x5: {m5}\n x6: {m6}")
+print(f"Final Errors:\n x1: {err1_history[-1]}\n x2: {err2_history[-1]}\n x3: {err3_history[-1]}\n x4: {err4_history[-1]}\n x5: {err5_history[-1]}\n x6: {err6_history[-1]}")
 print(f"Final Total Error: {total_errors[-1]:.4f}")
 
 plt.figure(figsize=(8, 5))
@@ -221,6 +263,8 @@ plt.plot(err1_history, 'b--', label='Error x1')
 plt.plot(err2_history, 'g--', label='Error x2')
 plt.plot(err3_history, 'm--', label='Error x3')
 plt.plot(err4_history, 'c--', label='Error x4')
+plt.plot(err5_history, 'orange', linestyle='--', label='Error x5')
+# plt.plot(err6_history, 'purple', linestyle='--', label='Error x6')
 plt.legend()
 plt.title("Total Error over Iterations", fontsize=14)
 plt.xlabel("Iteration", fontsize=12)

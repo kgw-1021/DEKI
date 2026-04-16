@@ -39,13 +39,14 @@ class Edge:
         elif vnode is not None and hasattr(vnode, 'z_consensus') and vnode.z_consensus.shape[1] == n_particles:
             # [핵심] VNode가 이미 앙상블을 가지고 있다면 그 상태를 완벽히 복제하여 시작!
             self.local_ensemble = vnode.z_consensus.copy()
+            self.z_target = vnode.z_consensus.copy()
+            self.z_target_prev = vnode.z_consensus.copy()
         else:
             self.local_ensemble = np.random.randn(dim, n_particles) * init_std
+            self.z_target = np.zeros((dim, n_particles))
+            self.z_target_prev = np.zeros((dim, n_particles))
         
         self.dual_lambda = np.zeros((dim, n_particles))
-        
-        self.z_target = np.zeros((dim, n_particles))
-        self.z_target_prev = np.zeros((dim, n_particles))
         
         self.rho = rho_init
         
