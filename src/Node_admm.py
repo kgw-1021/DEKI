@@ -97,12 +97,6 @@ class FNode(Node):
             
             delta_x = np.linalg.solve(lhs, rhs)
             
-            # 2. Step Clipping (Trust Region): 한 번에 너무 멀리 뛰는 것을 방지
-            max_step = 2.0  # 허용하는 최대 변화량
-            step_norm = np.linalg.norm(delta_x)
-            if step_norm > max_step:
-                delta_x = delta_x * (max_step / step_norm)
-            
             # 업데이트 적용
             idx = 0
             for edge in self.edges:
