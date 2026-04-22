@@ -210,11 +210,11 @@ def main():
     X_nodes, U_nodes = [], []
 
     for t in range(N + 1):
-        vn_x = VNode(f"X_{t}", [2], init_z=x_init_trj[t], mu_res=40.0, tau_res=1.05)
+        vn_x = VNode(f"X_{t}", [2], init_z=x_init_trj[t], mu_res=50.0, tau_res=1.1)
         X_nodes.append(vn_x)
 
     for t in range(N):
-        vn_u = VNode(f"U_{t}", [1], init_z=u_init_trj[t], mu_res=40.0, tau_res=1.05)
+        vn_u = VNode(f"U_{t}", [1], init_z=u_init_trj[t], mu_res=50.0, tau_res=1.1)
         U_nodes.append(vn_u)
 
     prior_factor = PriorFactor("Prior", [2], gamma_prior, x0)

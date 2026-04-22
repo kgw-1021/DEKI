@@ -4,9 +4,6 @@ from typing import List, Tuple
 from src.Graph_admm import Node, Edge, Graph
 
 class VNode(Node):
-    """
-    VNode: 기존과 동일하게 Residual Balancing을 유지함.
-    """
     def __init__(self, name: str, dims: list, init_z: np.ndarray = None,
                  mu_res: float = 10.0, tau_res: float = 2.0, rho_max: float = 1e3) -> None:
         super().__init__(name, dims)
@@ -57,8 +54,8 @@ class FNode(Node):
                  max_inner_iter: int = 1, inner_tol: float = 1e-5):
         super().__init__(name, dims)
         self.inv_gamma = np.linalg.inv(gamma)
-        self.max_inner_iter = max_inner_iter # 최대 내부 반복 횟수
-        self.inner_tol = inner_tol           # 수렴 조건 (delta_x의 크기)
+        self.max_inner_iter = max_inner_iter 
+        self.inner_tol = inner_tol           
 
     @abstractmethod
     def error_function(self, local_xs: list) -> np.ndarray:
@@ -89,7 +86,6 @@ class FNode(Node):
             V_total = np.vstack(v_list)
             R = np.diag(rho_diag)
             
-            # KKT System (Gauss-Newton step)
             lhs = J_total.T @ self.inv_gamma @ J_total + R
             rhs = -J_total.T @ self.inv_gamma @ f - R @ (X_total - V_total)
             
@@ -97,7 +93,6 @@ class FNode(Node):
             
             delta_x = np.linalg.solve(lhs, rhs)
             
-            # 업데이트 적용
             idx = 0
             for edge in self.edges:
                 dim = edge.local_x.shape[0]
@@ -106,7 +101,6 @@ class FNode(Node):
             
             # 수렴 판정 (변화량이 충분히 작으면 조기 종료)
             if np.linalg.norm(delta_x) < self.inner_tol:
-                # print(f"[{self.name}] Inner converged at iter {i+1}")
                 break
 
 class FactorGraph(Graph):

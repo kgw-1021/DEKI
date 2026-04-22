@@ -201,13 +201,12 @@ def main():
     graph = FactorGraph()
     X_nodes, U_nodes = [], []
 
-    # 수정됨: VNode에서 mu_res, tau_res 제거됨
     for t in range(N + 1):
-        vn_x = VNode(f"X_{t}", [2], init_z=x_init_trj[t])
+        vn_x = VNode(f"X_{t}", [2], init_z=x_init_trj[t], mu_res=5.0, tau_res=1.1)
         X_nodes.append(vn_x)
 
     for t in range(N):
-        vn_u = VNode(f"U_{t}", [1], init_z=u_init_trj[t])
+        vn_u = VNode(f"U_{t}", [1], init_z=u_init_trj[t], mu_res=5.0, tau_res=1.1)
         U_nodes.append(vn_u)
 
     prior_factor = PriorFactor("Prior", [2], gamma_prior, x0)
@@ -228,10 +227,6 @@ def main():
     term_cost = StateCostFactor("Cost_X_N", [2], gamma_Qf, x_goal)
     graph.connect(term_cost, X_nodes[N], dim=2, rho_init=1.0, init_val=x_init_trj[N])
 
-
-    # ---------------------------------------------------------
-    # [수정] ADMM 수렴 판정 로직 및 데이터 로깅 (Hessian Matrix P 대응)
-    # ---------------------------------------------------------
     eps_abs = 1e-5  
     eps_rel = 1e-4  
     max_iter = 1000  
@@ -242,7 +237,7 @@ def main():
     history_s = []
     history_eps_pri = []
     history_eps_dual = []
-    history_P_mean = [] # 수정: rho 대신 P 행렬의 크기 추적
+    history_P_mean = [] 
 
     for i in range(max_iter):
         z_old = {vn: vn.z.copy() for vn in all_vnodes}

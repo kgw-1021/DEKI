@@ -32,6 +32,8 @@ class Edge:
         
         # 스칼라 rho 대신 Penalty Matrix P (Precision 역할) 사용
         self.P = rho_init * np.eye(dim)
+
+        self.rho = rho_init
         
         node0.add_edge(self)
         node1.add_edge(self)
